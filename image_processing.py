@@ -62,8 +62,6 @@ def brightest_region(image: np.ndarray, save: bool = False, blur_size: int = 21)
 
 if __name__ == "__main__":
     camera = Camera_Manager()
-
-    for _ in range(5):
-        img = camera.capture()
-        coords = brightest_region(img)
-        print(f"Brightest region: {coords}")
+    img = camera.capture()
+    coords = brightest_region(img, save=True)
+    print(f"Brightest region: {coords}")
