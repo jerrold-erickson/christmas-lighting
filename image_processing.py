@@ -1,7 +1,7 @@
 import cv2
 import numpy as np
-from datetime import datetime
 import time
+import threading
 
 CAM_SETTINGS = {
     cv2.CAP_PROP_FOURCC: cv2.VideoWriter_fourcc(*"MPJG"),
@@ -13,6 +13,7 @@ CAM_SETTINGS = {
     cv2.CAP_PROP_SATURATION: 10.0,
     cv2.CAP_PROP_HUE: 0.0,
     cv2.CAP_PROP_GAIN: -1.0,
+    cv2.CAP_PROP_BUFFERSIZE: 1.0,
 }
 
 # image marker settings
@@ -23,23 +24,37 @@ M_THICKNESS = 5
 
 class Camera_Manager:
     def __init__(self, cam_settings: dict = CAM_SETTINGS):
-        self.vc = cv2.VideoCapture(0)
-        self.settings = cam_settings
+        self._vc = cv2.VideoCapture(0)
+        self._settings = cam_settings
 
-        for setting in self.settings:
-            self.vc.set(setting, self.settings[setting])
+        for setting in self._settings:
+            self._vc.set(setting, self._settings[setting])
 
         t = time.time()
-        while not self.vc.isOpened():
+        while not self._vc.isOpened():
             time.sleep(0.1)
             if time.time() - t > 5.0:
                 raise RuntimeError("Failed to open camera.")
 
+        self._lock = threading.Lock()
+        self._t = threading.Thread(target=self._reader)
+        self._t.start()
+
     def __del__(self):
+        self._t.join()
         self.vc.release()
 
+    def _reader(self):
+        while True:
+            with self._lock:
+                ret = self._vc.grab()
+            if not ret:
+                break
+
     def capture(self):
-        rval, frame = self.vc.read()
+        with self._lock:
+            rval, frame = self._vc.retrieve()
+
         if not rval:
             print("Failed to capture image.")
             return None
@@ -47,21 +62,28 @@ class Camera_Manager:
         return frame
 
 
-def brightest_region(image: np.ndarray, save: bool = False, blur_size: int = 21):
+def brightest_region(
+    image: np.ndarray,
+    save: bool = False,
+    save_name: str = "img.png",
+    blur_size: int = 21,
+):
     img_greyscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     img_greyscale = cv2.GaussianBlur(img_greyscale, (blur_size, blur_size), 0)
     *_, max_indx = cv2.minMaxLoc(img_greyscale)
 
     if save:
         cv2.drawMarker(image, max_indx, M_COLOR, cv2.MARKER_SQUARE, M_SIZE, M_THICKNESS)
-        filename = f"{datetime.now().strftime('%m-%d_%H-%M-%S')}.png"
-        cv2.imwrite(filename, image)
+        # filename = f"{datetime.now().strftime('%m-%d_%H-%M-%S')}.png"
+        cv2.imwrite(save_name, image)
 
     return max_indx
 
 
 if __name__ == "__main__":
     camera = Camera_Manager()
-    img = camera.capture()
-    coords = brightest_region(img, save=True)
-    print(f"Brightest region: {coords}")
+
+    while True:
+        img = camera.capture()
+        coords = brightest_region(img, save=True)
+        print(f"Brightest region: {coords}")

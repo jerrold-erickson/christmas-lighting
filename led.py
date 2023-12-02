@@ -42,7 +42,7 @@ class LED_Manager:
 
     @brightness.setter
     def brightness(self, value: int) -> None:
-        assert value in range(10, 255), "Brightness must be in range [10, 255]."
+        assert value in range(10, 256), "Brightness must be in range [10, 255]."
 
         self._brightness = value
         for i in range(self._num_pixels):
