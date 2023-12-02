@@ -5,12 +5,11 @@ import time
 import numpy as np
 
 
-NUM_LEDS = 50
-DEFAULT_BRIGHTNESS = int(0.1 * 255)
-
-
 class LED_Manager:
-    def __init__(self, n: int = NUM_LEDS, brightness: int = DEFAULT_BRIGHTNESS) -> None:
+    DEFAULT_LEDS = 50
+    DEFAULT_BRIGHTNESS = int(0.3 * 255)
+
+    def __init__(self, n: int = DEFAULT_LEDS, brightness: int = DEFAULT_BRIGHTNESS) -> None:
         self._leds = neopixel.NeoPixel(board.D18, n)
         self._num_pixels = n
         self.brightness = brightness
@@ -49,7 +48,9 @@ class LED_Manager:
             self[i] = self[i]
 
     def random(self) -> None:
-        colors = np.random.dirichlet(np.ones(3), size=NUM_LEDS) * self._brightness
+        colors = (
+            np.random.dirichlet(np.ones(3), size=self._num_pixels) * self._brightness
+        )
         for i in range(self._num_pixels):
             self[i] = colors[i]
 
