@@ -2,6 +2,7 @@ import cv2
 import numpy as np
 import time
 import threading
+import queue
 
 CAM_SETTINGS = {
     cv2.CAP_PROP_FOURCC: cv2.VideoWriter_fourcc(*"MPJG"),
@@ -26,7 +27,9 @@ class Camera_Manager:
     def __init__(self, cam_settings: dict = CAM_SETTINGS):
         self._vc = cv2.VideoCapture(0)
         self._settings = cam_settings
+        self.q = queue.Queue()
 
+        # configure and open video capture
         for setting in self._settings:
             self._vc.set(setting, self._settings[setting])
 
@@ -36,8 +39,8 @@ class Camera_Manager:
             if time.time() - t > 5.0:
                 raise RuntimeError("Failed to open camera.")
 
-        self._lock = threading.Lock()
         self._t = threading.Thread(target=self._reader)
+        self._t.daemon = True
         self._t.start()
 
     def __del__(self):
@@ -46,20 +49,18 @@ class Camera_Manager:
 
     def _reader(self):
         while True:
-            with self._lock:
-                ret = self._vc.grab()
+            ret, frame = self._vc.read()
             if not ret:
                 break
+            if not self.q.empty():
+                try:
+                    self.q.get_nowait()
+                except queue.Empty:
+                    pass
+            self.q.put(frame)
 
     def capture(self):
-        with self._lock:
-            rval, frame = self._vc.retrieve()
-
-        if not rval:
-            print("Failed to capture image.")
-            return None
-
-        return frame
+        return self.q.get()
 
 
 def brightest_region(
@@ -74,7 +75,6 @@ def brightest_region(
 
     if save:
         cv2.drawMarker(image, max_indx, M_COLOR, cv2.MARKER_SQUARE, M_SIZE, M_THICKNESS)
-        # filename = f"{datetime.now().strftime('%m-%d_%H-%M-%S')}.png"
         cv2.imwrite(save_name, image)
 
     return max_indx
