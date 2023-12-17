@@ -9,7 +9,9 @@ class LED_Manager:
     DEFAULT_LEDS = 50
     DEFAULT_BRIGHTNESS = int(0.3 * 255)
 
-    def __init__(self, n: int = DEFAULT_LEDS, brightness: int = DEFAULT_BRIGHTNESS) -> None:
+    def __init__(
+        self, n: int = DEFAULT_LEDS, brightness: int = DEFAULT_BRIGHTNESS
+    ) -> None:
         self._leds = neopixel.NeoPixel(board.D18, n)
         self._num_pixels = n
         self.brightness = brightness
@@ -56,6 +58,32 @@ class LED_Manager:
 
 
 if __name__ == "__main__":
-    pixels = LED_Manager()
+    num_leds = 200
+    brightness = 125
+    pixels = LED_Manager(n=num_leds, brightness=brightness)
 
-    pixels.random()
+    # pixels.off()
+
+    length = int(num_leds * 0.8)
+
+    for head in range(length):
+        color = np.random.dirichlet(np.ones(3)) * 255
+        pixels[head] = color
+        time.sleep(0.05)
+
+    head += 1
+    tail = head - length
+
+    while True:
+        color = np.random.dirichlet(np.ones(3)) * 255
+        pixels[head] = color
+        pixels[tail] = (0, 0, 0)
+        time.sleep(0.05)
+
+        head += 1
+        tail += 1
+
+        if head == num_leds:
+            head = 0
+        if tail == num_leds:
+            tail = 0

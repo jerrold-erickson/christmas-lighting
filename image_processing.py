@@ -65,12 +65,23 @@ class Camera_Manager:
 
 def brightest_region(
     image: np.ndarray,
+    x_min: int = 0,
+    x_max: int = 1920,
+    y_min: int = 0,
+    y_max: int = 1080,
+    blur_size: int = 21,
     save: bool = False,
     save_name: str = "img.png",
-    blur_size: int = 21,
 ):
     img_greyscale = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
     img_greyscale = cv2.GaussianBlur(img_greyscale, (blur_size, blur_size), 0)
+
+    # black out the region outside of the specified bounds
+    img_greyscale[:, :x_min] = 0
+    img_greyscale[:, x_max:] = 0
+    img_greyscale[:y_min, :] = 0
+    img_greyscale[y_max:, :] = 0
+
     *_, max_indx = cv2.minMaxLoc(img_greyscale)
 
     if save:
@@ -85,5 +96,6 @@ if __name__ == "__main__":
 
     while True:
         img = camera.capture()
-        coords = brightest_region(img, save=True)
+        coords = brightest_region(img, x_min=690, x_max=1210, y_min=250, save=True)
         print(f"Brightest region: {coords}")
+        time.sleep(3.0)
