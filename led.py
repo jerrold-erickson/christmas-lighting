@@ -1,8 +1,15 @@
 import board
 import neopixel
-import random
 import time
 import numpy as np
+
+COLORS = {
+    "RED": (0, 182, 0),
+    "GREEN": (251, 55, 0),
+    "BLUE": (55, 0, 251),
+    "ORANGE": (101, 233, 0),
+    "WHITE": (219, 240, 77),
+}
 
 
 class LED_Manager:
